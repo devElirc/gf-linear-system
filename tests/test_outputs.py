@@ -284,7 +284,7 @@ def test_singular_duplicate_equations():
         "rows": [[1, 1], [1, 1]],
         "rhs": [2, 2],
     }
-    kind, _payload = _oracle_classify(spec["rows"], spec["rhs"], spec["prime"])
+    kind, payload = _oracle_classify(spec["rows"], spec["rhs"], spec["prime"])
     assert kind == "non-unique"
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
@@ -293,6 +293,11 @@ def test_singular_duplicate_equations():
         data = _run_gf_solve(inp, outp)
     _assert_singular_payload(data)
     assert data["kind"] == "non-unique"
+    assert data == {
+        "status": "singular",
+        "kind": "non-unique",
+        "certificate": payload["certificate"],
+    }
 
 
 def test_singular_inconsistent():
@@ -302,7 +307,7 @@ def test_singular_inconsistent():
         "rows": [[1, 1], [1, 1]],
         "rhs": [1, 2],
     }
-    kind, _payload = _oracle_classify(spec["rows"], spec["rhs"], 7)
+    kind, payload = _oracle_classify(spec["rows"], spec["rhs"], 7)
     assert kind == "inconsistent"
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
@@ -311,6 +316,11 @@ def test_singular_inconsistent():
         data = _run_gf_solve(inp, outp)
     _assert_singular_payload(data)
     assert data["kind"] == "inconsistent"
+    assert data == {
+        "status": "singular",
+        "kind": "inconsistent",
+        "certificate": payload["certificate"],
+    }
 
 
 def test_one_by_one_zero_rhs():
@@ -454,8 +464,15 @@ def test_random_singular_systems_with_certificates():
             inp.write_text(json.dumps(spec), encoding="utf-8")
             data = _run_gf_solve(inp, outp, timeout_sec=120.0)
 
-        assert data["status"] == "singular"
-        assert data["kind"] == expected_kind
+        ok_kind, ok_payload = _oracle_classify(A, b, p)
+        assert ok_kind == expected_kind
+
+        assert data == {
+            "status": "singular",
+            "kind": expected_kind,
+            "certificate": ok_payload["certificate"],
+        }
+
         cert = data["certificate"]
         if expected_kind == "inconsistent":
             y = cert["y"]
@@ -484,7 +501,7 @@ def test_singular_near_full_rank_mod2():
         ],
         "rhs": [0, 0, 0, 0],
     }
-    kind, _payload = _oracle_classify(spec["rows"], spec["rhs"], 2)
+    kind, payload = _oracle_classify(spec["rows"], spec["rhs"], 2)
     assert kind == "non-unique"
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
@@ -493,3 +510,8 @@ def test_singular_near_full_rank_mod2():
         data = _run_gf_solve(inp, outp)
     _assert_singular_payload(data)
     assert data["kind"] == "non-unique"
+    assert data == {
+        "status": "singular",
+        "kind": "non-unique",
+        "certificate": payload["certificate"],
+    }
