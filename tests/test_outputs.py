@@ -284,13 +284,15 @@ def test_singular_duplicate_equations():
         "rows": [[1, 1], [1, 1]],
         "rhs": [2, 2],
     }
-    assert _oracle_solve(spec["rows"], spec["rhs"], spec["prime"]) is None
+    kind, _payload = _oracle_classify(spec["rows"], spec["rhs"], spec["prime"])
+    assert kind == "non-unique"
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         inp, outp = td / "s.json", td / "r.json"
         inp.write_text(json.dumps(spec), encoding="utf-8")
         data = _run_gf_solve(inp, outp)
     _assert_singular_payload(data)
+    assert data["kind"] == "non-unique"
 
 
 def test_singular_inconsistent():
@@ -300,13 +302,15 @@ def test_singular_inconsistent():
         "rows": [[1, 1], [1, 1]],
         "rhs": [1, 2],
     }
-    assert _oracle_solve(spec["rows"], spec["rhs"], 7) is None
+    kind, _payload = _oracle_classify(spec["rows"], spec["rhs"], 7)
+    assert kind == "inconsistent"
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         inp, outp = td / "s.json", td / "r.json"
         inp.write_text(json.dumps(spec), encoding="utf-8")
         data = _run_gf_solve(inp, outp)
     _assert_singular_payload(data)
+    assert data["kind"] == "inconsistent"
 
 
 def test_one_by_one_zero_rhs():
@@ -329,8 +333,9 @@ def test_negative_entries_canonicalized():
         "rows": [[-1, 0], [0, 1]],
         "rhs": [5, -40],
     }
-    exp = _oracle_solve(spec["rows"], spec["rhs"], 19)
-    assert exp is not None
+    kind, payload = _oracle_classify(spec["rows"], spec["rhs"], 19)
+    assert kind == "ok"
+    exp = payload["solution"]
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         inp, outp = td / "s.json", td / "r.json"
@@ -355,8 +360,9 @@ def test_large_prime_unimodular_triangular():
     x = [rng.randrange(p) for _ in range(n)]
     b = _matvec(A, x, p)
     spec = {"prime": p, "rows": A, "rhs": b}
-    exp = _oracle_solve(A, b, p)
-    assert exp is not None
+    kind, payload = _oracle_classify(A, b, p)
+    assert kind == "ok"
+    exp = payload["solution"]
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         inp, outp = td / "s.json", td / "r.json"
@@ -478,10 +484,12 @@ def test_singular_near_full_rank_mod2():
         ],
         "rhs": [0, 0, 0, 0],
     }
-    assert _oracle_solve(spec["rows"], spec["rhs"], 2) is None
+    kind, _payload = _oracle_classify(spec["rows"], spec["rhs"], 2)
+    assert kind == "non-unique"
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         inp, outp = td / "s.json", td / "r.json"
         inp.write_text(json.dumps(spec), encoding="utf-8")
         data = _run_gf_solve(inp, outp)
     _assert_singular_payload(data)
+    assert data["kind"] == "non-unique"
